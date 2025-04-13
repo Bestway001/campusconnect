@@ -8,8 +8,13 @@ const { sendVerificationEmail } = require("../utils/email");
 router.post("/register", async (req, res) => {
   const { email, password, name, university, department } = req.body;
   try {
-    if (!email.endsWith(".edu"))
-      return res.status(400).json({ msg: "Please use a .edu email" });
+    // Validate email format (basic check, can be enhanced)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res
+        .status(400)
+        .json({ msg: "Please provide a valid email address" });
+    }
 
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: "User already exists" });
@@ -35,6 +40,7 @@ router.post("/register", async (req, res) => {
       msg: "Registration successful. Please check your email to verify.",
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 });
@@ -55,6 +61,7 @@ router.get("/verify-email/:token", async (req, res) => {
 
     res.json({ msg: "Email verified", token });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 });
@@ -77,6 +84,7 @@ router.post("/login", async (req, res) => {
 
     res.json({ token });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 });
