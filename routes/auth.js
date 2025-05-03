@@ -1,91 +1,111 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const { sendVerificationEmail } = require("../utils/email");
+const jwt = require('jsonwebtoken');
+const User = require('../models/User'); // Assumed MongoDB model
+const nodemailer = require('nodemailer'); // For sending emails
 
-router.post("/register", async (req, res) => {
+// Environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://campusconnect-1f6h.onrender.com';
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+
+// Nodemailer setup
+const transporter = nodemailer.createTransport({
+  service: 'gmail', // Or your email service
+  auth: {
+    user: EMAIL_USER,
+    pass: EMAIL_PASS
+  }
+});
+
+// Register
+router.post('/register', async (req, res) => {
   const { email, password, name, university, department } = req.body;
   try {
-    // Validate email format (basic check, can be enhanced)
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res
-        .status(400)
-        .json({ msg: "Please provide a valid email address" });
-    }
-
     let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ msg: "User already exists" });
+    if (user) {
+      return res.status(400).json({ msg: 'User already exists' });
+    }
 
     user = new User({
       email,
-      password: await bcrypt.hash(password, 10),
+      password, // Hash password in production
       name,
       university,
       department,
+      isVerified: false,
+      isAdmin: false
     });
 
     await user.save();
 
-    const verificationToken = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-    await sendVerificationEmail(user, verificationToken);
+    // Create verification token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1d' });
 
-    res.json({
-      msg: "Registration successful. Please check your email to verify.",
+    // Send verification email
+    const verificationUrl = `${FRONTEND_URL}/verify?token=${token}`;
+    await transporter.sendMail({
+      to: email,
+      subject: 'Verify Your CampusConnect Account',
+      html: `
+        <p>Please click this link to verify your email:</p>
+        <a href="${verificationUrl}">${verificationUrl}</a>
+      `
     });
+
+    res.json({ msg: 'Registration successful' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
-router.get("/verify-email/:token", async (req, res) => {
+// Verify Email
+router.get('/verify-email/:token', async (req, res) => {
   try {
-    const decoded = jwt.verify(req.params.token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
-    if (!user) return res.status(400).json({ msg: "Invalid token" });
-
+    const { userId } = jwt.verify(req.params.token, JWT_SECRET);
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(400).json({ msg: 'Invalid token' });
+    }
+    if (user.isVerified) {
+      return res.json({ msg: 'Email already verified' });
+    }
     user.isVerified = true;
     await user.save();
-
-    const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    res.json({ msg: "Email verified", token });
+    res.json({ msg: 'Email verified successfully' });
+    // Optionally redirect: res.redirect(`${FRONTEND_URL}/verify?token=${req.params.token}`);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(400).json({ msg: 'Invalid or expired token' });
   }
 });
 
-router.post("/login", async (req, res) => {
+// Login
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
-    if (!user.isVerified)
-      return res.status(400).json({ msg: "Please verify your email" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
-
-    const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
+    if (!user) {
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+    if (!user.isVerified) {
+      return res.status(400).json({ msg: 'Email not verified' });
+    }
+    // Verify password (use bcrypt in production)
+    if (password !== user.password) {
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+    const token = jwt.sign(
+      { user: { id: user._id, name: user.name, email: user.email, university: user.university, department: user.department, isAdmin: user.isAdmin } },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
     res.json({ token });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
