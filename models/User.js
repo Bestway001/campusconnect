@@ -11,9 +11,13 @@ const userSchema = new mongoose.Schema({
   isAdmin: { type: Boolean, default: false },
   verificationCode: { type: String }, // New
   codeExpires: { type: Date }, // New
+   resetCode: { type: String },
+  resetCodeExpires: { type: Date },
   profilePicture: { type: String },
   walletBalance: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
+
+// userSchema.index({ email: 1 });
 
 module.exports = mongoose.model("User", userSchema);
