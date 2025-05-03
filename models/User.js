@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   isAgent: { type: Boolean, default: false },
   isAdmin: { type: Boolean, default: false },
+  verificationCode: { type: String }, // New
+  codeExpires: { type: Date }, // New
   profilePicture: { type: String },
   walletBalance: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
