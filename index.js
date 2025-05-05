@@ -5,6 +5,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const authRoutes = require("./routes/auth");
 const messageRoutes = require("./routes/messages");
+require("dotenv").config(); // Load environment variables
 
 const app = express();
 const server = http.createServer(app);
@@ -29,14 +30,20 @@ app.use(
 );
 app.use(express.json());
 
-// MongoDB connection
-mongoose
-  .connect("mongodb://localhost/campusconnect", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+// MongoDB connection with retry logic
+const connectDB = async () => {
+  try {
+    await mongoose.connect(
+      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/campusconnect"
+    );
+    console.log("MongoDB connected");
+  } catch (err) {
+    console.error("MongoDB connection error:", err.message);
+    // Retry after 5 seconds
+    setTimeout(connectDB, 5000);
+  }
+};
+connectDB();
 
 // Routes
 app.use("/api/auth", authRoutes);
