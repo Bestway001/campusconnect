@@ -7,7 +7,9 @@ const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
 
 // Environment variables
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  "6aa22db37e31a118f0b246afd663fdbec52826297818a2c05d12b8051aebeb9d";
 const FRONTEND_URL =
   process.env.FRONTEND_URL || "https://campusconnect-1f6h.onrender.com";
 const EMAIL_USER = process.env.EMAIL_USER;
@@ -36,7 +38,7 @@ const generateCode = () =>
 // Register
 router.post("/register", async (req, res) => {
   const { email, password, name, university, department } = req.body;
-  console.log("Register attempt:", { email, name, university, department }); // Add logging
+  console.log("Register attempt:", { email, name, university, department }); // Log request
   try {
     if (!email || !password || !name || !university || !department) {
       return res.status(400).json({ msg: "All fields are required" });
@@ -61,10 +63,11 @@ router.post("/register", async (req, res) => {
       verificationCode,
       codeExpires,
     });
-
+    console.log("Saving user:", user.email); // Log before save
     await user.save();
-    console.log("User saved:", user.email); // Add logging
+    console.log("User saved:", user.email); // Log after save
 
+    console.log("Sending email to:", email); // Log before email
     await transporter.sendMail({
       to: email,
       subject: "Verify Your CampusConnect Account",
@@ -74,11 +77,12 @@ router.post("/register", async (req, res) => {
         <p>Enter this code in the app to verify your email. It expires in 15 minutes.</p>
       `,
     });
+    console.log("Email sent to:", email); // Log after email
 
     console.log(`Registration successful for ${email}`);
     res.json({ msg: "Registration successful" });
   } catch (err) {
-    console.error("Registration error:", err.message); // Add detailed error logging
+    console.error("Registration error:", err.message); // Log the error
     res.status(500).json({ msg: "Server error during registration" });
   }
 });
