@@ -3,21 +3,38 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
-const { Server } = require('socket.io');
+// const{ Server } = require('socket.io');
+const socketIo = require('socket.io');
 const authRoutes = require('./routes/auth');
 const messageRoutes = require('./routes/messages');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
+const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000"]["https://campusconnect-1f6h.onrender.com"],
-    methods: ['GET', 'POST']  }
+    origin: "http://localhost:3000", // Allow this origin
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
+// const io = new Server(server, {
+//   cors: {
+//     origin: ["http://localhost:3000"]["https://campusconnect-1f6h.onrender.com"],
+//     methods: ['GET', 'POST']  }
+// });
+
+
 
 // Middleware
-app.use(cors({ origin: ["http://localhost:3000"]["https://campusconnect-1f6h.onrender.com"] }));
-app.use(express.json());
+// app.use(cors({ origin: ["http://localhost:3000"]["https://campusconnect-1f6h.onrender.com"] }));
+// app.use(express.json());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // Allow this origin
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
 
 // MongoDB connection
 mongoose.connect('mongodb://localhost/campusconnect', {
