@@ -100,5 +100,8 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// const PORT = process.env.PORT || 5000;
+// server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Socket.IO and other server logic here
+server.listen(3001, () => console.log('Server running on port 3001'));
