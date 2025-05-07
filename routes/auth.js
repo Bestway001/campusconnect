@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+// Ensure the path to the User model is correct based on the file structure
+const User = require("../models/User"); // Adjust path: './' instead of '../'
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
@@ -15,6 +16,8 @@ const FRONTEND_URL =
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
+console.log("Env vars:", { EMAIL_USER, EMAIL_PASS });
+
 // Nodemailer setup
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -23,6 +26,8 @@ const transporter = nodemailer.createTransport({
     pass: EMAIL_PASS,
   },
 });
+
+console.log("Transporter config:", transporter.options);
 
 // Rate limit for resend-code and forgot-password (5 requests per hour per IP)
 const resendLimiter = rateLimit({
@@ -38,7 +43,7 @@ const generateCode = () =>
 // Register
 router.post("/register", async (req, res) => {
   const { email, password, name, university, department } = req.body;
-  console.log("Register attempt:", { email, name, university, department }); // Log request
+  console.log("Register attempt:", { email, name, university, department });
   try {
     if (!email || !password || !name || !university || !department) {
       return res.status(400).json({ msg: "All fields are required" });
@@ -63,11 +68,11 @@ router.post("/register", async (req, res) => {
       verificationCode,
       codeExpires,
     });
-    console.log("Saving user:", user.email); // Log before save
+    console.log("Saving user:", user.email);
     await user.save();
-    console.log("User saved:", user.email); // Log after save
+    console.log("User saved:", user.email);
 
-    console.log("Sending email to:", email); // Log before email
+    console.log("Sending email to:", email);
     await transporter.sendMail({
       to: email,
       subject: "Verify Your CampusConnect Account",
@@ -77,12 +82,12 @@ router.post("/register", async (req, res) => {
         <p>Enter this code in the app to verify your email. It expires in 15 minutes.</p>
       `,
     });
-    console.log("Email sent to:", email); // Log after email
+    console.log("Email sent to:", email);
 
     console.log(`Registration successful for ${email}`);
     res.json({ msg: "Registration successful" });
   } catch (err) {
-    console.error("Registration error:", err.message); // Log the error
+    console.error("Registration error:", err.message, err.stack);
     res.status(500).json({ msg: "Server error during registration" });
   }
 });
