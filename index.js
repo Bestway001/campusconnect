@@ -36,6 +36,11 @@ app.use(
   })
 );
 
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
+});
+
 // MongoDB connection
 mongoose.connect('mongodb://localhost/campusconnect', {
   useNewUrlParser: true,
@@ -61,6 +66,7 @@ io.use((socket, next) => {
     next(new Error('Authentication error'));
   }
 });
+
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.user.id}`);
@@ -104,4 +110,5 @@ if (!process.env.JWT_SECRET) {
 // server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // Socket.IO and other server logic here
-server.listen(3001, () => console.log('Server running on port 3001'));
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
